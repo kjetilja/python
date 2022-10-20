@@ -2,6 +2,7 @@ import tkinter as tk
 import random
 
 class Tetronimo(object):
+    """Logical representation of the tetronimo."""
     def __init__(self, arena, canvas, shape_data, colorid):
         self.arena = arena
         self.canvas = canvas
@@ -12,6 +13,7 @@ class Tetronimo(object):
         self.ypos = 0 # start ypos
     
     def will_collide(self, xpos, ypos, index):
+        """Check whether the given position and rotation index will trigger a collision on the arena."""
         arena_start_index = (self.arena.arena_width * (ypos+1)) + xpos + 1
         shape_index = index * 4
         for entry in self.shape_data[shape_index:shape_index+4]:
@@ -23,6 +25,7 @@ class Tetronimo(object):
         return False
 
     def rotate(self):
+        """Rotate tetronimo unless the rotation cause it to collide."""
         new_index = (self.index + 1) % 4
         if not self.will_collide(self.xpos, self.ypos, new_index):
             self.render(0)
@@ -30,6 +33,7 @@ class Tetronimo(object):
             self.render(self.colorid)
 
     def drop(self):
+        """Drop tetronimo one position down. If dropping cause collision, the tetronimo is put into the arena state."""
         new_position = self.ypos + 1
         if not self.will_collide(self.xpos, new_position, self.index):
             self.render(0)
@@ -46,6 +50,7 @@ class Tetronimo(object):
             return False
 
     def drop_fast(self):
+        """Drop tetronimo until it collides."""
         start_position = self.ypos
         new_position = self.ypos + 1
         while True:
@@ -59,6 +64,7 @@ class Tetronimo(object):
         return self.ypos - start_position # used to calculate the score
 
     def move(self, xoffset):
+        """Move tetronimo horizontally."""
         new_position = self.xpos + xoffset
         if not self.will_collide(new_position, self.ypos, self.index):
             self.render(0)
@@ -66,6 +72,7 @@ class Tetronimo(object):
             self.render(self.colorid)
 
     def render(self, colorid):
+        """Render tetronimo on the game arena."""
         shape_index = self.index * 4
         tile_size = self.canvas.tile_size
         for entry in self.shape_data[shape_index:shape_index+4]:
@@ -76,6 +83,7 @@ class Tetronimo(object):
                                     colorid)
 
     def render_next_tile(self):
+        """Render tetronimo as the next that will be played on the game arena."""
         xpos = 16
         ypos = 5
         tile_size = self.canvas.tile_size
@@ -87,6 +95,7 @@ class Tetronimo(object):
                                     self.colorid)
 
 class Arena(object):
+    """Logical represenation of the game arena."""
     def __init__(self, canvas):
         self.arena = []
         self.arena_width = 12
@@ -95,7 +104,7 @@ class Arena(object):
         self.create()
 
     def create(self):
-        # Create initial area based on dimensions from https://en.wikipedia.org/wiki/Tetris
+        """Create initial area based on dimensions from https://en.wikipedia.org/wiki/Tetris."""
         frame = [1 for x in range(self.arena_width)]
         self.arena += frame
         walls = [1] + [0] * (self.arena_width-2) + [1]
@@ -104,6 +113,7 @@ class Arena(object):
         self.arena += frame
 
     def check_for_full_rows(self):
+        """Check whether there are full rows in the area, and remove them if so."""
         for row in range(1, self.arena_height-1):
             full_row = True
             for column in range(self.arena_width):
@@ -117,6 +127,7 @@ class Arena(object):
                 self.render()
 
     def render(self):
+        """Render the arena based on the current arena state."""
         for row in range(self.arena_height):
             for column in range(self.arena_width):
                 tile_entry = self.arena[(row * self.arena_width) + column]
@@ -125,6 +136,7 @@ class Arena(object):
                                         tile_entry)
 
 class Game(object):
+    """Game state and control flows."""
     def __init__(self, canvas):
         self.canvas = canvas
         self.canvas.bind_key('<Up>', lambda _: self.current_tetronimo.rotate())
@@ -216,7 +228,7 @@ class Game(object):
                 self.generate_level()
                 self.game_speed = max(100, 1000-(self.level*100))
             next_tetronimo = self.get_tetronimo()
-            if next_tetronimo.will_collide(4, 0, 0):
+            if next_tetronimo.will_collide(4, 0, 0): # check if it is possible to render the next tetronimo on arena
                 self.game_over_screen()
                 self.game_started = False
                 self.game_speed = 1000
@@ -231,18 +243,20 @@ class Game(object):
         self.tetronimo_loop(score_factor)
 
 class Canvas(tk.Frame):
+    """TkInter based canvas to display the game arena, tetronimos and game stats."""
     def __init__(self):
         root = tk.Tk()
-        root.title('Tetris')
+        root.title('TkTris')
         super(Canvas, self).__init__(root)
-        self.width = 400
-        self.height = 400
-        self.colormap = {0:"black", 1:"grey", 2:"green", 3:"yellow", 4:"red", 5:"cyan", 6:"blue", 7:"magenta", 8:"brown"}
-        self.tile_size = 16 # in pixels
-        self.canvas = tk.Canvas(root, bg='black', width=self.width, height=self.height,)
+        self.canvas = tk.Canvas(root, bg='black', width=400, height=400)
         self.canvas.pack()
         self.canvas.focus_set()
         self.pack()
+        self.setup()
+
+    def setup(self):
+        self.colormap = {0:"black", 1:"grey", 2:"green", 3:"yellow", 4:"red", 5:"cyan", 6:"blue", 7:"magenta", 8:"brown"}
+        self.tile_size = 16 # in pixels
 
     def create_tile(self, x, y, tile_entry):
         return self.canvas.create_rectangle(x, y, x + self.tile_size, y + self.tile_size, fill=self.colormap[tile_entry])
@@ -258,7 +272,7 @@ class Canvas(tk.Frame):
         self.canvas.create_rectangle(0, 0, 400, 400, fill='black')
 
     def clear_game_stats(self):
-        self.canvas.create_rectangle(15*16, 0, 24*16, 350, fill='black')
+        self.canvas.create_rectangle(15*self.tile_size, 0, 24*self.tile_size, 350, fill='black')
 
     def invoke_callback(self, game_speed, game_loop):
         self.after(game_speed, game_loop)
