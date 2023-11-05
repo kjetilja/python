@@ -5,6 +5,9 @@ class Path(object):
     def __init__(self, arena_width, arena_height):
         self.arena_width = arena_width
         self.arena_height = arena_height
+        self.reset()
+
+    def reset(self):
         self.points = []
 
     def add_point(self, x, y):
@@ -22,6 +25,7 @@ class Arena(object):
         self.arena = []
         self.arena_width = int(width/speed) + 1
         self.arena_height = int(height/speed) + 1
+        self.path = Path(self.arena_width, self.arena_height)
         self.arena_xpos = 0
         self.arena_ypos = 0
         self.is_drawing = False
@@ -86,10 +90,7 @@ class Arena(object):
         if not self.is_drawing and self.is_possible_to_draw():
             self.is_drawing = True
             self.drawing_completed = False
-            arena_position = (self.arena_ypos * self.arena_width) + self.arena_xpos
-            self.arena[arena_position] = 2
-            self.path = Path(self.arena_width, self.arena_height)
-            self.path.add_point(self.arena_xpos, self.arena_ypos)
+            self.path.reset()
 
     def is_possible_to_draw(self):
         """ Return True if it is possible to start drawing from this position."""
@@ -118,17 +119,23 @@ class Arena(object):
         area_sizes = list(areas.keys())
         area_sizes.sort()
         print("area sizes", area_sizes)
-        largest_area = area_sizes[-1]
 
-        # The largest area is not filled
-        for x, y in areas[largest_area]:
-            arena_position = y * self.arena_width + x
-            self.arena[arena_position] = 0
+        # Check that there exist a fillable area - if not, we have exhausted all free slots on the arena
+        if len(area_sizes) > 0:
+            largest_area = area_sizes[-1]
 
-        # All other areas are filled
-        for fill_area in area_sizes[:-1]:
-            for x, y in areas[fill_area]:
-                box_callback(x, y)
+            # The largest area is not filled
+            for x, y in areas[largest_area]:
+                arena_position = y * self.arena_width + x
+                self.arena[arena_position] = 0
+
+            # All other areas are filled
+            for fill_area in area_sizes[:-1]:
+                for x, y in areas[fill_area]:
+                    box_callback(x, y)
+        else:
+            # No fillable slots remain
+            print("Arena filled")
 
         # Change all the value 2 points on the pathline to value 1 so they can be traversed
         for x, y in self.path.points:
