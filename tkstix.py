@@ -28,6 +28,10 @@ class Player(object):
         self.drawing_completed = True
         self.path = Path()
 
+    def get_path_positions(self):
+        """Return current set of positions in the Path."""
+        return self.path.get_positions()
+
     def can_move_horizontally(self, xadjust):
         """Check whether player can be moved in horizontally by xadjust, return True if so, False otherwise."""
         if (self.x + xadjust < 0) or (self.x + xadjust >= self.arena_width):
@@ -38,7 +42,7 @@ class Player(object):
                 self.path.add_position(self.x + xadjust, self.y)
                 self.arena[arena_position] = 2
                 return True
-            elif self.arena[arena_position] == 1 and len(self.path.get_positions()) > 2:
+            elif self.arena[arena_position] == 1 and len(self.get_path_positions()) > 2:
                 self.drawing_completed = True
                 return True
             elif self.arena[arena_position] == 2:
@@ -59,7 +63,7 @@ class Player(object):
                 self.path.add_position(self.x, self.y + yadjust)
                 self.arena[arena_position] = 2
                 return True
-            elif self.arena[arena_position] == 1 and len(self.path.get_positions()) > 2:
+            elif self.arena[arena_position] == 1 and len(self.get_path_positions()) > 2:
                 self.drawing_completed = True
                 return True
             elif self.arena[arena_position] == 2:
@@ -83,8 +87,13 @@ class Player(object):
             self.drawing_completed = False
             self.path.reset()
 
+    def complete_drawing(self):
+        """Drawing completed, update internal state."""
+        self.is_drawing = False
+        self.drawing_completed = True
+
     def is_possible_to_draw(self):
-        """Return True if it is possible to start drawing from this position."""
+        """Return True if it is possible to start drawing from the current position."""
         if self.x > 0:
             arena_position = (self.y * self.arena_width) + self.x - 1
             if self.arena[arena_position] == 0: return True
@@ -180,7 +189,7 @@ class Arena(object):
             self.arena += walls
         self.arena += frame
 
-    def get_free_position(self):
+    def get_first_free_arena_position(self):
         """Return the first empty position in the arena."""
         for y in range(0, self.arena_height):
             for x in range(0, self.arena_width):
@@ -192,7 +201,7 @@ class Arena(object):
         """Find the smallest empty area and fill it."""
         areas = {}
         while True:
-            free_position = self.get_free_position()
+            free_position = self.get_first_free_arena_position()
             if free_position == None:
                 break
             fill_positions = self.fill_region(free_position[0], free_position[1])
@@ -223,14 +232,13 @@ class Arena(object):
             print("Arena filled") # TODO: set state to indicate that level completed
 
         # Change all the "value 2" positions on the path to value 1 so they can be traversed by the Player
-        for x, y in self.player.path.get_positions():
+        for x, y in self.player.get_path_positions():
             arena_position = y * self.arena_width + x
             if self.arena[arena_position] == 2:
                 self.arena[arena_position] = 1
 
-        # Update state variables to indicate completion of the drawing
-        self.player.is_drawing = False
-        self.player.drawing_completed = True
+        # Complete drawing, and reflect this in the Player state.
+        self.player.complete_drawing()
 
     def fill_region(self, seedx, seedy):
         """Simple flood fill, starting with the seed positions."""
