@@ -254,12 +254,9 @@ class Arena(object):
 class Game(object):
     def __init__(self, canvas):
         self.canvas = canvas
-        self.canvas.create_frame()
+        self.canvas.create_arena_frame()
         self.xpos = 10
         self.ypos = 10
-        self.dot = self.canvas.create_dot(self.xpos, self.ypos)
-        self.line_enemies = [self.canvas.create_dot(10, 100, color="red"),
-                             self.canvas.create_dot(10, 200, color="red")]
         self.game_speed = 40
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
@@ -272,12 +269,11 @@ class Game(object):
         if keys[pygame.K_LEFT]: self.left()
         if keys[pygame.K_RIGHT]: self.right()
         if keys[pygame.K_DOWN]: self.down()
-        if keys[pygame.K_SPACE]: self.initate_drawing()
+        if keys[pygame.K_SPACE]: self.initiate_drawing()
 
     def up(self):
         if self.arena.player.can_move_vertically(-1):
             self.ypos -= self.pixels_per_move
-            self.canvas.move(self.dot, 0, -self.pixels_per_move)
             self.arena.player.y -= 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.up
@@ -289,7 +285,6 @@ class Game(object):
     def down(self):
         if self.arena.player.can_move_vertically(1):
             self.ypos += self.pixels_per_move
-            self.canvas.move(self.dot, 0, self.pixels_per_move)
             self.arena.player.y += 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.down
@@ -301,7 +296,6 @@ class Game(object):
     def left(self):
         if self.arena.player.can_move_horizontally(-1):
             self.xpos -= self.pixels_per_move
-            self.canvas.move(self.dot, -self.pixels_per_move, 0)
             self.arena.player.x -= 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.left
@@ -313,7 +307,6 @@ class Game(object):
     def right(self):
         if self.arena.player.can_move_horizontally(1):
             self.xpos += self.pixels_per_move
-            self.canvas.move(self.dot, self.pixels_per_move, 0)
             self.arena.player.x += 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.right
@@ -355,6 +348,9 @@ class Game(object):
             if self.next_move_callback != None:
                 self.next_move_callback()
 
+            # Render the player dot
+            self.canvas.create_dot(self.xpos, self.ypos)
+
             # Move enemies that traverse the lines
             self.move_line_enemies()
 
@@ -371,7 +367,7 @@ class PyGameCanvas(object):
         self.width = width
         self.height = height
 
-    def create_frame(self):
+    def create_arena_frame(self):
         rect = pygame.Rect(10, 10, self.width-20, self.height-20)
         color = pygame.Color('white')
         return pygame.draw.rect(self.arena_surface, color, rect, 1)
