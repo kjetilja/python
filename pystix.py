@@ -85,17 +85,16 @@ class Player(object):
 
     def is_possible_to_draw(self):
         """Return True if it is possible to start drawing from this position."""
-        print("ASDASDASD", self.x, self.y, self.arena_width, self.arena_height)
         if self.x > 0:
             arena_position = (self.y * self.arena_width) + self.x - 1
             if self.arena[arena_position] == 0: return True
-        if self.x < self.arena_width:
+        if self.x < self.arena_width-1:
             arena_position = (self.y * self.arena_width) + self.x + 1
             if self.arena[arena_position] == 0: return True
         if self.y > 0:
             arena_position = ((self.y - 1) * self.arena_width) + self.x
             if self.arena[arena_position] == 0: return True
-        if self.y < self.arena_height:
+        if self.y < self.arena_height-1:
             arena_position = ((self.y + 1) * self.arena_width) + self.x
             if self.arena[arena_position] == 0: return True
 
@@ -174,7 +173,6 @@ class Arena(object):
 
     def initialize_arena_state(self):
         """Create the arena game state, wtih a perimeter rectangle 1's that is filled with 0's."""
-        print("##@@#@#@", self.arena_height, self.arena_width)
         frame = [1 for x in range(self.arena_width)]
         self.arena += frame
         walls = [1] + [0] * (self.arena_width-2) + [1]
@@ -348,8 +346,6 @@ class Game(object):
 
             # Get keyboard input
             self.handle_keyboard_input()
-
-            print(self.arena.player.x, self.arena.player.y)
 
             # Render the player dot
             self.canvas.create_dot(self.xpos, self.ypos)
