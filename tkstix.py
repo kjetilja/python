@@ -263,8 +263,8 @@ class Game(object):
         self.xpos = 10
         self.ypos = 10
         self.dot = self.canvas.create_dot(self.xpos, self.ypos)
-        self.line_enemies = [self.canvas.create_dot(10, 100, fill="red", tags=("lineenemy",)),
-                             self.canvas.create_dot(10, 200, fill="red", tags=("lineenemy",))]
+        self.line_enemies = [self.canvas.create_dot(10, 100, fill="red"),
+                             self.canvas.create_dot(10, 200, fill="red")]
         self.game_speed = 40
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
