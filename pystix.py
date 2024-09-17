@@ -258,14 +258,13 @@ class Game(object):
         self.xpos = 10
         self.ypos = 10
         self.dot = self.canvas.create_dot(self.xpos, self.ypos)
-        self.line_enemies = [self.canvas.create_dot(10, 100, fill="red"),
-                             self.canvas.create_dot(10, 200, fill="red")]
+        self.line_enemies = [self.canvas.create_dot(10, 100, color="red"),
+                             self.canvas.create_dot(10, 200, color="red")]
         self.game_speed = 40
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
         self.next_move_callback = None
         self.running = True
-        self.game_loop()
 
     def handle_keyboard_input(self):
         keys = pygame.key.get_pressed()
@@ -346,34 +345,36 @@ class Game(object):
                 if event.type == pygame.QUIT:
                     self.running = False
 
-        # Get keyboard input
-        self.handle_keyboard_input()
+            # Get keyboard input
+            self.handle_keyboard_input()
 
-        # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
-        if self.next_move_callback != None:
-            self.next_move_callback()
-        # Move enemies that traverse the lines
-        self.move_line_enemies()
+            # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
+            if self.next_move_callback != None:
+                self.next_move_callback()
 
-        # Render the current frame and wait for FPS
-        self.canvas.render_frame(60)
+            # Move enemies that traverse the lines
+            self.move_line_enemies()
 
+            # Render the current frame and wait for FPS
+            self.canvas.render_frame(60)
 
 class PyGameCanvas(object):
     def __init__(self, width, height):
         pygame.init()
         self.screen = pygame.display.set_mode((width, height))
         self.clock = pygame.time.Clock()
+        self.width = width
+        self.height = height
 
     def create_frame(self):
         rect = pygame.Rect(10, 10, self.width-10, self.height-10)
         color = pygame.Color('white')
-        return pygame.draw.rect(self.screen, color, rect)
+        return pygame.draw.rect(self.screen, color, rect, 1)
 
-    def create_dot(self, x, y, rad=10, color_value='white'):
+    def create_dot(self, x, y, rad=5, color='white'):
         pos = pygame.Vector2(x, y)
-        color = pygame.Color(color_value)
-        return pygame.draw.circle(self.screen, color, pos, rad)
+        color_value = pygame.Color(color)
+        return pygame.draw.circle(self.screen, color_value, pos, rad)
 
     def create_line(self, x1, y1, x2, y2):
         start_pos = pygame.Vector2(x1, y1)
@@ -399,7 +400,7 @@ class PyGameCanvas(object):
 
     def render_frame(self, game_speed):
         pygame.display.flip()
-        self.canvas.clock.tick(game_speed)      
+        self.clock.tick(game_speed)
 
 if __name__ == '__main__':
     canvas = PyGameCanvas(600, 600)
