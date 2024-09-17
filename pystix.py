@@ -85,6 +85,7 @@ class Player(object):
 
     def is_possible_to_draw(self):
         """Return True if it is possible to start drawing from this position."""
+        print("ASDASDASD", self.x, self.y, self.arena_width, self.arena_height)
         if self.x > 0:
             arena_position = (self.y * self.arena_width) + self.x - 1
             if self.arena[arena_position] == 0: return True
@@ -173,6 +174,7 @@ class Arena(object):
 
     def initialize_arena_state(self):
         """Create the arena game state, wtih a perimeter rectangle 1's that is filled with 0's."""
+        print("##@@#@#@", self.arena_height, self.arena_width)
         frame = [1 for x in range(self.arena_width)]
         self.arena += frame
         walls = [1] + [0] * (self.arena_width-2) + [1]
@@ -257,7 +259,6 @@ class Game(object):
         self.canvas.create_arena_frame()
         self.xpos = 10
         self.ypos = 10
-        self.game_speed = 40
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
         self.next_move_callback = None
@@ -341,12 +342,14 @@ class Game(object):
             # Render the current arena
             self.canvas.render_arena()
 
-            # Get keyboard input
-            self.handle_keyboard_input()
-
             # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
             if self.next_move_callback != None:
                 self.next_move_callback()
+
+            # Get keyboard input
+            self.handle_keyboard_input()
+
+            print(self.arena.player.x, self.arena.player.y)
 
             # Render the player dot
             self.canvas.create_dot(self.xpos, self.ypos)
@@ -386,8 +389,8 @@ class PyGameCanvas(object):
     def create_arena_rect(self, x, y):
         startx = 7 + (x * 5)
         starty = 7 + (y * 5)
-        color_fill = pygame.Color('green')
-        rect = pygame.Rect(startx, starty, startx+5, starty+5)
+        color_fill = pygame.Color('darkgreen')
+        rect = pygame.Rect(startx+1, starty+1, 3, 3)
         return pygame.draw.rect(self.arena_surface, color_fill, rect)
 
     def move(self, obj, xpos, ypos):
