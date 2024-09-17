@@ -88,13 +88,13 @@ class Player(object):
         if self.x > 0:
             arena_position = (self.y * self.arena_width) + self.x - 1
             if self.arena[arena_position] == 0: return True
-        if self.x < self.arena_width:
+        if self.x < self.arena_width-1:
             arena_position = (self.y * self.arena_width) + self.x + 1
             if self.arena[arena_position] == 0: return True
         if self.y > 0:
             arena_position = ((self.y - 1) * self.arena_width) + self.x
             if self.arena[arena_position] == 0: return True
-        if self.y < self.arena_height:
+        if self.y < self.arena_height-1:
             arena_position = ((self.y + 1) * self.arena_width) + self.x
             if self.arena[arena_position] == 0: return True
 
