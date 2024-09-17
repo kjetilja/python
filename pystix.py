@@ -1,4 +1,4 @@
-import tkinter as tk
+import pygame
 import random
 
 class Path(object):
@@ -254,11 +254,6 @@ class Arena(object):
 class Game(object):
     def __init__(self, canvas):
         self.canvas = canvas
-        self.canvas.bind_key('<Up>', lambda _: self.up())
-        self.canvas.bind_key('<Left>', lambda _: self.left())
-        self.canvas.bind_key('<Right>', lambda _: self.right())
-        self.canvas.bind_key('<Down>', lambda _: self.down())
-        self.canvas.bind_key('<space>', lambda _: self.initiate_drawing())
         self.canvas.create_frame()
         self.xpos = 10
         self.ypos = 10
@@ -269,7 +264,16 @@ class Game(object):
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
         self.next_move_callback = None
+        self.running = True
         self.game_loop()
+
+    def handle_keyboard_input(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]: self.up()
+        if keys[pygame.K_LEFT]: self.left()
+        if keys[pygame.K_RIGHT]: self.right()
+        if keys[pygame.K_DOWN]: self.down()
+        if keys[pygame.K_SPACE]: self.initate_drawing()
 
     def up(self):
         if self.arena.player.can_move_vertically(-1):
@@ -335,59 +339,69 @@ class Game(object):
         move_x, move_y = self.arena.line_enemies[1].move()
         self.canvas.move(self.line_enemies[1], self.pixels_per_move * move_x, self.pixels_per_move * move_y)
 
-    def game_loop(self):
+    def loop(self):
+        # Check whether there's an input event (window close, etc.)
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+
+        # Get keyboard input
+        self.handle_keyboard_input()
+
         # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
         if self.next_move_callback != None:
             self.next_move_callback()
         # Move enemies that traverse the lines
         self.move_line_enemies()
-        # Repeat
-        self.canvas.invoke_callback(self.game_speed, self.game_loop)
+
+        # Render the current frame and wait for FPS
+        self.canvas.render_frame(60)
 
 
-class Canvas(tk.Frame):
+class PyGameCanvas(object):
     def __init__(self, width, height):
-        root = tk.Tk()
-        root.title('TkStix')
-        super(Canvas, self).__init__(root)
-        self.width = width
-        self.height = height
-        self.canvas = tk.Canvas(root, bg='black', width=self.width, height=self.height)
-        self.canvas.pack()
-        self.canvas.focus_set()
-        self.pack()
+        pygame.init()
+        self.screen = pygame.display.set_mode((width, height))
+        self.clock = pygame.time.Clock()
 
     def create_frame(self):
-        return self.canvas.create_rectangle(10, 10, self.width-10, self.height-10, outline='white')
+        rect = pygame.Rect(10, 10, self.width-10, self.height-10)
+        color = pygame.Color('white')
+        return pygame.draw.rect(self.screen, color, rect)
 
-    def create_dot(self, x, y, rad=10, fill='white'):
-        return self.canvas.create_oval(x-(rad/2), y-(rad/2), x+(rad/2), y+(rad/2), fill=fill)
+    def create_dot(self, x, y, rad=10, color_value='white'):
+        pos = pygame.Vector2(x, y)
+        color = pygame.Color(color_value)
+        return pygame.draw.circle(self.screen, color, pos, rad)
 
     def create_line(self, x1, y1, x2, y2):
-        return self.canvas.create_line(x1, y1, x2, y2, fill='white')
+        start_pos = pygame.Vector2(x1, y1)
+        end_pos = pygame.Vector2(x2, y2)
+        color = pygame.Color('white')
+        return pygame.draw.line(self.screen, color, start_pos, end_pos)
 
     def create_rect(self, x, y):
         startx = 7 + (x * 5)
         starty = 7 + (y * 5)
-        return self.canvas.create_rectangle(startx, starty, startx+5, starty+5, outline='black', fill='green')
+        color_fill = pygame.Color('green')
+        rect = pygame.Rect(startx, starty, startx+5, starty+5)
+        return pygame.draw.rect(self.screen, color_fill, rect)
 
     def move(self, obj, xpos, ypos):
-        return self.canvas.move(obj, xpos, ypos)
+        return obj.move(xpos, ypos)
 
     def draw_text(self, x, y, text, size='16'):
-        font = ('Consolas', size)
-        return self.canvas.create_text(x, y, text=text, font=font, fill='white')
+        pygame.font.init()
+        font = pygame.font.SysFont('Consolas', size)
+        text_canvas = font.render(text, False, (0, 0, 0))
+        return self.screen.blit(text_canvas, (x, y))
 
-    def bind_key(self, key, func):
-        self.canvas.bind(key, func)
-
-    def clear_all(self):
-        self.canvas.create_rectangle(0, 0, self.width, self.height, fill='black')
-
-    def invoke_callback(self, game_speed, game_loop):
-        self.after(game_speed, game_loop)
+    def render_frame(self, game_speed):
+        pygame.display.flip()
+        self.canvas.clock.tick(game_speed)      
 
 if __name__ == '__main__':
-    canvas = Canvas(600, 600)
+    canvas = PyGameCanvas(600, 600)
     game = Game(canvas)
-    canvas.mainloop()
+    game.loop()
