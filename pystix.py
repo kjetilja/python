@@ -381,7 +381,7 @@ class PyGameCanvas(object):
         start_pos = pygame.Vector2(x1, y1)
         end_pos = pygame.Vector2(x2, y2)
         color = pygame.Color('white')
-        return pygame.draw.line(self.screen, color, start_pos, end_pos)
+        return pygame.draw.line(self.arena_surface, color, start_pos, end_pos)
 
     def create_arena_rect(self, x, y):
         startx = 7 + (x * 5)
