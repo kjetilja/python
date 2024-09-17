@@ -326,7 +326,7 @@ class Game(object):
         self.arena.player.initiate_drawing()
 
     def fill_arena(self):
-        self.arena.fill_arena(self.canvas.create_rect)
+        self.arena.fill_arena(self.canvas.create_arena_rect)
 
     def new_game(self):
         self.score = 0
@@ -334,16 +334,19 @@ class Game(object):
 
     def move_line_enemies(self):
         move_x, move_y = self.arena.line_enemies[0].move()
-        self.canvas.move(self.line_enemies[0], self.pixels_per_move * move_x, self.pixels_per_move * move_y)
+        self.canvas.create_dot(10 + (self.arena.line_enemies[0].x * self.pixels_per_move), 10 + (self.arena.line_enemies[0].y * self.pixels_per_move), color="red")
         move_x, move_y = self.arena.line_enemies[1].move()
-        self.canvas.move(self.line_enemies[1], self.pixels_per_move * move_x, self.pixels_per_move * move_y)
+        self.canvas.create_dot(10 + (self.arena.line_enemies[1].x * self.pixels_per_move), 10 + (self.arena.line_enemies[1].y * self.pixels_per_move), color="red")
 
     def loop(self):
-        # Check whether there's an input event (window close, etc.)
         while self.running:
+            # Check whether there's an input event (window close, etc.)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+
+            # Render the current arena
+            self.canvas.render_arena()
 
             # Get keyboard input
             self.handle_keyboard_input()
@@ -355,21 +358,23 @@ class Game(object):
             # Move enemies that traverse the lines
             self.move_line_enemies()
 
-            # Render the current frame and wait for FPS
+            # Render the current frame and wait for desired FPS tick
             self.canvas.render_frame(60)
+
 
 class PyGameCanvas(object):
     def __init__(self, width, height):
         pygame.init()
-        self.screen = pygame.display.set_mode((width, height))
+        self.screen = pygame.display.set_mode((width, height)) # Represents the total screen estate
+        self.arena_surface = pygame.Surface((width,height)) # Represents the (evolving) arena
         self.clock = pygame.time.Clock()
         self.width = width
         self.height = height
 
     def create_frame(self):
-        rect = pygame.Rect(10, 10, self.width-10, self.height-10)
+        rect = pygame.Rect(10, 10, self.width-20, self.height-20)
         color = pygame.Color('white')
-        return pygame.draw.rect(self.screen, color, rect, 1)
+        return pygame.draw.rect(self.arena_surface, color, rect, 1)
 
     def create_dot(self, x, y, rad=5, color='white'):
         pos = pygame.Vector2(x, y)
@@ -382,12 +387,12 @@ class PyGameCanvas(object):
         color = pygame.Color('white')
         return pygame.draw.line(self.screen, color, start_pos, end_pos)
 
-    def create_rect(self, x, y):
+    def create_arena_rect(self, x, y):
         startx = 7 + (x * 5)
         starty = 7 + (y * 5)
         color_fill = pygame.Color('green')
         rect = pygame.Rect(startx, starty, startx+5, starty+5)
-        return pygame.draw.rect(self.screen, color_fill, rect)
+        return pygame.draw.rect(self.arena_surface, color_fill, rect)
 
     def move(self, obj, xpos, ypos):
         return obj.move(xpos, ypos)
@@ -397,6 +402,9 @@ class PyGameCanvas(object):
         font = pygame.font.SysFont('Consolas', size)
         text_canvas = font.render(text, False, (0, 0, 0))
         return self.screen.blit(text_canvas, (x, y))
+
+    def render_arena(self):
+        self.screen.blit(self.arena_surface, (0,0))
 
     def render_frame(self, game_speed):
         pygame.display.flip()
