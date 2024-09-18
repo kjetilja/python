@@ -1,5 +1,6 @@
 import pygame
 import random
+import math
 
 class Path(object):
     """Track the positions that are being drawed by the Player."""
@@ -100,7 +101,7 @@ class Player(object):
 
 
 class ArenaEnemy(object):
-    """An enemy dot that bounces within the lines."""
+    """A pile of sticks that move around the arena. If the sticks hit a line that's being drawn, life is lost."""
     def __init__(self, arena, x, y, arena_width, arena_height):
         self.x = x
         self.y = y
@@ -114,7 +115,7 @@ class ArenaEnemy(object):
 
 
 class LineEnemy(object):
-    """An enemy dot that traverse the lines."""
+    """An enemy dot that traverse the lines. If the dot hits the player, life is lost."""
     def __init__(self, arena, x, y, arena_width, arena_height):
         self.x = x
         self.y = y
@@ -320,17 +321,23 @@ class Game(object):
     def fill_arena(self):
         self.arena.fill_arena(self.canvas.create_arena_rect)
 
-    def new_game(self):
-        self.score = 0
-        self.level = 1
-
-    def move_line_enemies(self):
+    def render_line_enemies(self):
         move_x, move_y = self.arena.line_enemies[0].move()
         self.canvas.create_dot(10 + (self.arena.line_enemies[0].x * self.pixels_per_move), 10 + (self.arena.line_enemies[0].y * self.pixels_per_move), color="red")
         move_x, move_y = self.arena.line_enemies[1].move()
         self.canvas.create_dot(10 + (self.arena.line_enemies[1].x * self.pixels_per_move), 10 + (self.arena.line_enemies[1].y * self.pixels_per_move), color="red")
 
+    def render_player(self):
+        self.canvas.create_dot(self.xpos, self.ypos)
+
     def loop(self):
+        angle = 0
+        center_x, center_y = 500, 500
+        radius = 100
+        velocity = 5
+        line_vector = pygame.math.Vector2(1, 0)
+        count = 50
+
         while self.running:
             # Check whether there's an input event (window close, etc.)
             for event in pygame.event.get():
@@ -340,6 +347,21 @@ class Game(object):
             # Render the current arena
             self.canvas.render_arena()
 
+            # TESTING
+
+            count -= 1
+            if count == 0:
+                angle += 90 % 360
+                count = 50
+            center_x += velocity * math.cos(math.radians(angle + 90))
+            center_y -= velocity * math.sin(math.radians(angle + 90))
+            rot_vector = line_vector.rotate(angle) * radius
+            start = round(center_x + rot_vector.x), round(center_y + rot_vector.y)
+            end = round(center_x - rot_vector.x), round(center_y - rot_vector.y)
+            pygame.draw.line(self.canvas.screen, pygame.Color("red"), start, end, 2)
+
+            # TESTING
+
             # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
             if self.next_move_callback != None:
                 self.next_move_callback()
@@ -347,11 +369,11 @@ class Game(object):
             # Get keyboard input
             self.handle_keyboard_input()
 
-            # Render the player dot
-            self.canvas.create_dot(self.xpos, self.ypos)
+            # Render the player
+            self.render_player()
 
-            # Move enemies that traverse the lines
-            self.move_line_enemies()
+            # Render and move enemies that traverse the lines
+            self.render_line_enemies()
 
             # Render the current frame and wait for desired FPS tick
             self.canvas.render_frame(60)
