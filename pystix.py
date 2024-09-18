@@ -406,6 +406,6 @@ class PyGameCanvas(object):
         self.clock.tick(game_speed)
 
 if __name__ == '__main__':
-    canvas = PyGameCanvas(600, 600)
+    canvas = PyGameCanvas(1200, 1200)
     game = Game(canvas)
     game.loop()
