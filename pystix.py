@@ -398,11 +398,14 @@ class Game(object):
 
     def render_arena_enemies(self):
         line_start, line_end = self.arena.arena_enemies[0].move()
-        if len(self.last_n_lines) > 15:
+        if len(self.last_n_lines) > 25:
             self.last_n_lines.pop(0)
         self.last_n_lines.append((line_start, line_end))
+        red_component = 5
         for (start, end) in self.last_n_lines:
-            pygame.draw.line(self.canvas.screen, pygame.Color("red"), start, end, 2)
+            color = pygame.Color(red_component, 0, 0)
+            red_component += 10
+            pygame.draw.line(self.canvas.screen, color, start, end, 2)
 
     def loop(self):
         while self.running:
