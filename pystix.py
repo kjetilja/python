@@ -156,7 +156,7 @@ class ArenaEnemy(object):
         else:
             self.y2 = 0
             self.count2 = 0
-        return (10+(self.startx1*5), 10+(self.starty1*5)), (10+(self.startx2*5), 10+(self.starty2*5))
+        return (self.startx1, self.starty1), (self.startx2, self.starty2)
 
     def intersects(self, x1, y1, x2, y2):
         for (x, y) in bresenham.bresenham(x1, y1, x2, y2):
@@ -343,7 +343,7 @@ class Game(object):
             self.arena.player.y -= 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.up
-                self.canvas.create_line(self.xpos, self.ypos + self.pixels_per_move, self.xpos, self.ypos)
+                self.canvas.create_line((self.xpos, self.ypos + self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
@@ -354,7 +354,7 @@ class Game(object):
             self.arena.player.y += 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.down
-                self.canvas.create_line(self.xpos, self.ypos - self.pixels_per_move, self.xpos, self.ypos)
+                self.canvas.create_line((self.xpos, self.ypos - self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
@@ -365,7 +365,7 @@ class Game(object):
             self.arena.player.x -= 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.left
-                self.canvas.create_line(self.xpos + self.pixels_per_move, self.ypos, self.xpos, self.ypos)
+                self.canvas.create_line((self.xpos + self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
@@ -376,7 +376,7 @@ class Game(object):
             self.arena.player.x += 1
             if self.arena.player.is_drawing:
                 self.next_move_callback = self.right
-                self.canvas.create_line(self.xpos - self.pixels_per_move, self.ypos, self.xpos, self.ypos)
+                self.canvas.create_line((self.xpos - self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
@@ -398,14 +398,15 @@ class Game(object):
 
     def render_arena_enemies(self):
         line_start, line_end = self.arena.arena_enemies[0].move()
+        pixel_line_start = (10+(line_start[0]*self.pixels_per_move), 10+(line_start[1]*self.pixels_per_move))
+        pixel_line_end = (10+(line_end[0]*self.pixels_per_move), 10+(line_end[1]*self.pixels_per_move))
         if len(self.last_n_lines) > 25:
             self.last_n_lines.pop(0)
-        self.last_n_lines.append((line_start, line_end))
+        self.last_n_lines.append((pixel_line_start, pixel_line_end))
         red_component = 5
         for (start, end) in self.last_n_lines:
-            color = pygame.Color(red_component, 0, 0)
-            red_component += 10
-            pygame.draw.line(self.canvas.screen, color, start, end, 2)
+            red_component += 8
+            self.canvas.create_stick_line(start, end, red_component)
 
     def loop(self):
         while self.running:
@@ -456,11 +457,13 @@ class PyGameCanvas(object):
         color_value = pygame.Color(color)
         return pygame.draw.circle(self.screen, color_value, pos, rad)
 
-    def create_line(self, x1, y1, x2, y2):
-        start_pos = pygame.Vector2(x1, y1)
-        end_pos = pygame.Vector2(x2, y2)
-        color = pygame.Color('white')
-        return pygame.draw.line(self.arena_surface, color, start_pos, end_pos)
+    def create_line(self, start_pos, end_pos):
+        color_param = pygame.Color('white')
+        return pygame.draw.line(self.arena_surface, color_param, start_pos, end_pos)
+
+    def create_stick_line(self, start_pos, end_pos, red_component):
+        color = pygame.Color(red_component, 0, 0)
+        return pygame.draw.line(self.screen, color, start_pos, end_pos)
 
     def create_arena_rect(self, x, y):
         startx = 7 + (x * 5)
