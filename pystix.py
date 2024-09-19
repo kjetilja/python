@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import bresenham
 
 class Path(object):
     """Track the positions that are being drawed by the Player."""
@@ -131,27 +132,38 @@ class ArenaEnemy(object):
             self.x2, self.y2 = random.choice(self.directions)
             self.count2 = random.randint(5, 100)
 
-        if self.can_move_horizontally(self.startx1, self.starty1, self.x1):
+        if self.can_move_horizontally(self.startx1, self.starty1, self.x1) and \
+            not self.intersects(self.startx1+self.x1, self.starty1, self.startx2, self.starty2):
             self.startx1 += self.x1
         else:
             self.x1 = 0
             self.count1 = 0
-        if self.can_move_vertically(self.startx1, self.starty1, self.y1):
+        if self.can_move_vertically(self.startx1, self.starty1, self.y1) and \
+            not self.intersects(self.startx1, self.starty1+self.y1, self.startx2, self.starty2):
             self.starty1 += self.y1
         else:
             self.y1 = 0
             self.count1 = 0
-        if self.can_move_horizontally(self.startx2, self.starty2, self.x2):
+        if self.can_move_horizontally(self.startx2, self.starty2, self.x2) and \
+            not self.intersects(self.startx1, self.starty1, self.startx2+self.x2, self.starty2):
             self.startx2 += self.x2
         else:
             self.x2 = 0
             self.count2 = 0
-        if self.can_move_vertically(self.startx2, self.starty2, self.y2):
+        if self.can_move_vertically(self.startx2, self.starty2, self.y2) and \
+            not self.intersects(self.startx1, self.starty1, self.startx2, self.starty2+self.y2):
             self.starty2 += self.y2
         else:
             self.y2 = 0
             self.count2 = 0
         return (10+(self.startx1*5), 10+(self.starty1*5)), (10+(self.startx2*5), 10+(self.starty2*5))
+
+    def intersects(self, x1, y1, x2, y2):
+        for (x, y) in bresenham.bresenham(x1, y1, x2, y2):
+            arena_position = (y * self.arena_width) + x
+            if self.arena[arena_position] != 0:
+                return True
+        return False
 
     def can_move_horizontally(self, x, y, xadjust):
         if (x + xadjust < 0) or (x + xadjust >= self.arena_width):
@@ -164,6 +176,7 @@ class ArenaEnemy(object):
             return False
         arena_position = ((y + yadjust) * self.arena_width) + x
         return self.arena[arena_position] == 0
+
 
 class LineEnemy(object):
     """An enemy dot that traverse the lines. If the dot hits the player, life is lost."""
