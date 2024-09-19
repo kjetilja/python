@@ -102,17 +102,68 @@ class Player(object):
 
 class ArenaEnemy(object):
     """A pile of sticks that move around the arena. If the sticks hit a line that's being drawn, life is lost."""
-    def __init__(self, arena, x, y, arena_width, arena_height):
-        self.x = x
-        self.y = y
+    def __init__(self, arena, arena_width, arena_height):
         self.arena = arena
         self.arena_width = arena_width
         self.arena_height = arena_height
+        self.startx1 = 20
+        self.startx2 = 23
+        self.starty1 = 20
+        self.starty2 = 23
+        self.directions = [ (1,0),(1,1),(0,1),(-1,0),(-1,-1),(0,-1),(1,-1),(-1,1),(0,0) ]
+        self.count1 = 5
+        self.count2 = 5
+        self.hop1 = 5
+        self.hop2 = 2
+        self.x1, self.y1 = random.choice(self.directions)
+        self.x2, self.y2 = random.choice(self.directions)
 
     def move(self):
         """Return the next position to move into."""
-        pass
+        self.count1 -= 1
+        if self.count1 < 0:
+            self.x1, self.y1 = random.choice(self.directions)
+            self.x2, self.y2 = random.choice(self.directions)
+            self.count1 = random.randint(5, 100)
+        self.count2 -= 1
+        if self.count2 < 0:
+            self.x1, self.y1 = random.choice(self.directions)
+            self.x2, self.y2 = random.choice(self.directions)
+            self.count2 = random.randint(5, 100)
 
+        if self.can_move_horizontally(self.startx1, self.starty1, self.x1):
+            self.startx1 += self.x1
+        else:
+            self.x1 = 0
+            self.count1 = 0
+        if self.can_move_vertically(self.startx1, self.starty1, self.y1):
+            self.starty1 += self.y1
+        else:
+            self.y1 = 0
+            self.count1 = 0
+        if self.can_move_horizontally(self.startx2, self.starty2, self.x2):
+            self.startx2 += self.x2
+        else:
+            self.x2 = 0
+            self.count2 = 0
+        if self.can_move_vertically(self.startx2, self.starty2, self.y2):
+            self.starty2 += self.y2
+        else:
+            self.y2 = 0
+            self.count2 = 0
+        return (10+(self.startx1*5), 10+(self.starty1*5)), (10+(self.startx2*5), 10+(self.starty2*5))
+
+    def can_move_horizontally(self, x, y, xadjust):
+        if (x + xadjust < 0) or (x + xadjust >= self.arena_width):
+            return False
+        arena_position = (y * self.arena_width) + (x + xadjust)
+        return self.arena[arena_position] == 0
+
+    def can_move_vertically(self, x, y, yadjust):
+        if (y + yadjust < 0) or (y + yadjust >= self.arena_height):
+            return False
+        arena_position = ((y + yadjust) * self.arena_width) + x
+        return self.arena[arena_position] == 0
 
 class LineEnemy(object):
     """An enemy dot that traverse the lines. If the dot hits the player, life is lost."""
@@ -170,6 +221,7 @@ class Arena(object):
         self.player = Player(self.arena, 0, 0, self.arena_width, self.arena_height)
         self.line_enemies = [LineEnemy(self.arena, 0, 18, self.arena_width, self.arena_height),
                              LineEnemy(self.arena, 0, 38, self.arena_width, self.arena_height)]
+        self.arena_enemies = [ArenaEnemy(self.arena, self.arena_width, self.arena_height)]
         print("Initialized arena: ", width, height, speed, self.arena_width, self.arena_height)
 
     def initialize_arena_state(self):
@@ -260,6 +312,7 @@ class Game(object):
         self.ypos = 10
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
+        self.last_n_lines = []
         self.next_move_callback = None
         self.running = True
 
@@ -330,14 +383,15 @@ class Game(object):
     def render_player(self):
         self.canvas.create_dot(self.xpos, self.ypos)
 
-    def loop(self):
-        angle = 0
-        center_x, center_y = 500, 500
-        radius = 100
-        velocity = 5
-        line_vector = pygame.math.Vector2(1, 0)
-        count = 50
+    def render_arena_enemies(self):
+        line_start, line_end = self.arena.arena_enemies[0].move()
+        if len(self.last_n_lines) > 15:
+            self.last_n_lines.pop(0)
+        self.last_n_lines.append((line_start, line_end))
+        for (start, end) in self.last_n_lines:
+            pygame.draw.line(self.canvas.screen, pygame.Color("red"), start, end, 2)
 
+    def loop(self):
         while self.running:
             # Check whether there's an input event (window close, etc.)
             for event in pygame.event.get():
@@ -346,21 +400,6 @@ class Game(object):
 
             # Render the current arena
             self.canvas.render_arena()
-
-            # TESTING
-
-            count -= 1
-            if count == 0:
-                angle += 90 % 360
-                count = 50
-            center_x += velocity * math.cos(math.radians(angle + 90))
-            center_y -= velocity * math.sin(math.radians(angle + 90))
-            rot_vector = line_vector.rotate(angle) * radius
-            start = round(center_x + rot_vector.x), round(center_y + rot_vector.y)
-            end = round(center_x - rot_vector.x), round(center_y - rot_vector.y)
-            pygame.draw.line(self.canvas.screen, pygame.Color("red"), start, end, 2)
-
-            # TESTING
 
             # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
             if self.next_move_callback != None:
@@ -374,6 +413,9 @@ class Game(object):
 
             # Render and move enemies that traverse the lines
             self.render_line_enemies()
+
+            # Render and move "sticks" enemies that move within the free space of the arena
+            self.render_arena_enemies()
 
             # Render the current frame and wait for desired FPS tick
             self.canvas.render_frame(60)
@@ -410,9 +452,6 @@ class PyGameCanvas(object):
         color_fill = pygame.Color('darkgreen')
         rect = pygame.Rect(startx+1, starty+1, 3, 3)
         return pygame.draw.rect(self.arena_surface, color_fill, rect)
-
-    def move(self, obj, xpos, ypos):
-        return obj.move(xpos, ypos)
 
     def draw_text(self, x, y, text, size='16'):
         pygame.font.init()
