@@ -226,19 +226,20 @@ class LineEnemy(object):
 
 
 class Arena(object):
+    """The arena where the game takes place."""
     def __init__(self, width, height, speed):
         self.arena = []
         self.arena_width = int(width/speed) + 1
         self.arena_height = int(height/speed) + 1
-        self.initialize_arena_state()
+        self.initialize_arena()
         self.player = Player(self.arena, 0, 0, self.arena_width, self.arena_height)
         self.line_enemies = [LineEnemy(self.arena, 0, 18, self.arena_width, self.arena_height),
                              LineEnemy(self.arena, 0, 38, self.arena_width, self.arena_height)]
         self.arena_enemies = [ArenaEnemy(self.arena, self.arena_width, self.arena_height)]
         print("Initialized arena: ", width, height, speed, self.arena_width, self.arena_height)
 
-    def initialize_arena_state(self):
-        """Create the arena game state, wtih a perimeter rectangle 1's that is filled with 0's."""
+    def initialize_arena(self):
+        """Create the arena game state, with a perimeter rectangle of 1's that is filled with 0's."""
         frame = [1 for x in range(self.arena_width)]
         self.arena += frame
         walls = [1] + [0] * (self.arena_width-2) + [1]
@@ -247,7 +248,7 @@ class Arena(object):
         self.arena += frame
 
     def get_free_position(self):
-        """Return the first empty position in the arena."""
+        """Return the first empty (i.e., not filled or being drawn) position in the arena."""
         for y in range(0, self.arena_height):
             for x in range(0, self.arena_width):
                 if self.arena[(y * self.arena_width) + x] == 0:
@@ -318,6 +319,7 @@ class Arena(object):
 
 
 class Game(object):
+    """Game logic to capture player input and render objects (player, enemies, etc.) from the Arena to the screen."""
     def __init__(self, canvas):
         self.canvas = canvas
         self.canvas.create_arena_frame()
@@ -330,6 +332,7 @@ class Game(object):
         self.running = True
 
     def handle_keyboard_input(self):
+        """TODO: abstract and move pygame specifics into the PyGameCanvas."""
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]: self.up()
         if keys[pygame.K_LEFT]: self.left()
@@ -410,10 +413,8 @@ class Game(object):
 
     def loop(self):
         while self.running:
-            # Check whether there's an input event (window close, etc.)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
+            # Check whether there's an input event (window close, etc.) indicating that we should exit
+            self.running = self.canvas.check_for_exit()
 
             # Render the current arena
             self.canvas.render_arena()
@@ -439,6 +440,7 @@ class Game(object):
 
 
 class PyGameCanvas(object):
+    """Canvas object that abstracts over pygame."""
     def __init__(self, width, height):
         pygame.init()
         self.screen = pygame.display.set_mode((width, height)) # Represents the total screen estate
@@ -446,6 +448,12 @@ class PyGameCanvas(object):
         self.clock = pygame.time.Clock()
         self.width = width
         self.height = height
+
+    def check_for_exit(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+        return True
 
     def create_arena_frame(self):
         rect = pygame.Rect(10, 10, self.width-20, self.height-20)
