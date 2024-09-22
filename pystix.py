@@ -4,7 +4,7 @@ import math
 import bresenham
 
 class Path(object):
-    """Track the positions that are being drawed by the Player."""
+    """Track the positions that are being drawn by the Player."""
     def __init__(self):
         self.reset()
 
@@ -122,6 +122,7 @@ class ArenaEnemy(object):
     def move(self):
         """Return the next position to move into."""
         self.count1 -= 1
+        self.intersected = False
         if self.count1 < 0:
             self.x1, self.y1 = random.choice(self.directions)
             self.x2, self.y2 = random.choice(self.directions)
@@ -156,12 +157,15 @@ class ArenaEnemy(object):
         else:
             self.y2 = 0
             self.count2 = 0
-        return (self.startx1, self.starty1), (self.startx2, self.starty2)
+        return (self.startx1, self.starty1), (self.startx2, self.starty2), self.intersected
 
     def intersects(self, x1, y1, x2, y2):
         for (x, y) in bresenham.bresenham(x1, y1, x2, y2):
             arena_position = (y * self.arena_width) + x
             if self.arena[arena_position] != 0:
+                if self.arena[arena_position] == 2:
+                    print("Line intersected with drawing")
+                    self.intersected = True
                 return True
         return False
 
@@ -389,6 +393,7 @@ class Game(object):
 
     def fill_arena(self):
         self.arena.fill_arena(self.canvas.create_arena_rect)
+        self.canvas.complete_drawing()
 
     def render_line_enemies(self):
         move_x, move_y = self.arena.line_enemies[0].move()
@@ -400,7 +405,8 @@ class Game(object):
         self.canvas.create_dot(self.xpos, self.ypos)
 
     def render_arena_enemies(self):
-        line_start, line_end = self.arena.arena_enemies[0].move()
+        # Render 25 last lines
+        line_start, line_end, intersected = self.arena.arena_enemies[0].move()
         pixel_line_start = (10+(line_start[0]*self.pixels_per_move), 10+(line_start[1]*self.pixels_per_move))
         pixel_line_end = (10+(line_end[0]*self.pixels_per_move), 10+(line_end[1]*self.pixels_per_move))
         if len(self.last_n_lines) > 25:
@@ -410,6 +416,11 @@ class Game(object):
         for (start, end) in self.last_n_lines:
             red_component += 8
             self.canvas.create_stick_line(start, end, red_component)
+        # Check whether the newest line intersected with an ongoing Player drawing
+        # If so, the drawing should be reverted and a player life lost
+        if intersected:
+            print("Line intersected, cleaning up")
+
 
     def loop(self):
         while self.running:
@@ -445,6 +456,7 @@ class PyGameCanvas(object):
         pygame.init()
         self.screen = pygame.display.set_mode((width, height)) # Represents the total screen estate
         self.arena_surface = pygame.Surface((width,height)) # Represents the (evolving) arena
+        self.drawing_surface = pygame.Surface((width,height)) # Represents the ongoing drawing
         self.clock = pygame.time.Clock()
         self.width = width
         self.height = height
@@ -467,7 +479,7 @@ class PyGameCanvas(object):
 
     def create_line(self, start_pos, end_pos):
         color_param = pygame.Color('white')
-        return pygame.draw.line(self.arena_surface, color_param, start_pos, end_pos)
+        return pygame.draw.line(self.drawing_surface, color_param, start_pos, end_pos)
 
     def create_stick_line(self, start_pos, end_pos, red_component):
         color = pygame.Color(red_component, 0, 0)
@@ -486,8 +498,12 @@ class PyGameCanvas(object):
         text_canvas = font.render(text, False, (0, 0, 0))
         return self.screen.blit(text_canvas, (x, y))
 
+    def complete_drawing(self):
+        self.arena_surface.blit(self.drawing_surface, (0,0), special_flags=pygame.BLEND_ADD)
+
     def render_arena(self):
         self.screen.blit(self.arena_surface, (0,0))
+        self.screen.blit(self.drawing_surface, (0,0), special_flags=pygame.BLEND_ADD)
 
     def render_frame(self, game_speed):
         pygame.display.flip()
