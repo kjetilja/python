@@ -347,7 +347,6 @@ class Game(object):
     def reset_player_state(self):
         self.next_move_callback = None
         self.xpos, self.ypos = self.start_pos
-        # Set up the "drawing" surface
         self.canvas.create_new_drawing_surface()
 
     def handle_keyboard_input(self):
@@ -368,7 +367,7 @@ class Game(object):
                 self.next_move_callback = self.up
                 self.canvas.create_line((self.xpos, self.ypos + self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena()
+                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -382,7 +381,7 @@ class Game(object):
                 self.next_move_callback = self.down
                 self.canvas.create_line((self.xpos, self.ypos - self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena()
+                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -396,7 +395,7 @@ class Game(object):
                 self.next_move_callback = self.left
                 self.canvas.create_line((self.xpos + self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena()
+                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -410,7 +409,7 @@ class Game(object):
                 self.next_move_callback = self.right
                 self.canvas.create_line((self.xpos - self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena()
+                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -419,7 +418,7 @@ class Game(object):
         self.arena.player.initiate_drawing()
 
     def fill_arena(self):
-        self.arena.fill_arena(self.canvas.create_arena_rect)
+        self.arena.fill_arena(fill_callback=self.canvas.create_arena_rect)
         self.canvas.complete_drawing()
 
     def render_line_enemies(self):
@@ -427,6 +426,7 @@ class Game(object):
         self.canvas.create_dot(10 + (self.arena.line_enemies[0].x * self.pixels_per_move), 10 + (self.arena.line_enemies[0].y * self.pixels_per_move), color="red")
         move_x, move_y = self.arena.line_enemies[1].move()
         self.canvas.create_dot(10 + (self.arena.line_enemies[1].x * self.pixels_per_move), 10 + (self.arena.line_enemies[1].y * self.pixels_per_move), color="red")
+        # TODO: check whether line enemies hit the Player
 
     def render_player(self):
         self.canvas.create_dot(self.xpos, self.ypos)
