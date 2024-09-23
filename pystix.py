@@ -1,7 +1,8 @@
 import pygame
+import bresenham
 import random
 import math
-import bresenham
+
 
 class Path(object):
     """Track the positions that are being drawn by the Player."""
@@ -24,11 +25,14 @@ class Player(object):
         self.arena = arena
         self.arena_width = arena_width
         self.arena_height = arena_height
-        self.x = x
-        self.y = y
+        self.start_pos = (x, y)
+        self.reset_player_state()
+
+    def reset_player_state(self):
+        self.path = Path()
+        self.x, self.y = self.start_pos
         self.is_drawing = False
         self.drawing_completed = True
-        self.path = Path()
 
     def can_move_horizontally(self, xadjust):
         """Check whether player can be moved in horizontally by xadjust, return True if so, False otherwise."""
@@ -259,6 +263,13 @@ class Arena(object):
                     return x, y
         return None
 
+    def change_player_path_state(self, state_value):
+        # Change all the "value 2" positions on the path to state_value
+        for x, y in self.player.path.get_positions():
+            arena_position = y * self.arena_width + x
+            if self.arena[arena_position] == 2:
+                self.arena[arena_position] = state_value
+
     def fill_arena(self, fill_callback):
         """Find the smallest empty area and fill it."""
         areas = {}
@@ -294,10 +305,7 @@ class Arena(object):
             print("Arena filled") # TODO: set state to indicate that level completed
 
         # Change all the "value 2" positions on the path to value 1 so they can be traversed by the Player
-        for x, y in self.player.path.get_positions():
-            arena_position = y * self.arena_width + x
-            if self.arena[arena_position] == 2:
-                self.arena[arena_position] = 1
+        self.change_player_path_state(1)
 
         # Update state variables to indicate completion of the drawing
         self.player.is_drawing = False
@@ -327,13 +335,18 @@ class Game(object):
     def __init__(self, canvas):
         self.canvas = canvas
         self.canvas.create_arena_frame()
-        self.xpos = 10
-        self.ypos = 10
+        self.start_pos = (10, 10)
         self.pixels_per_move = 5
         self.arena = Arena(self.canvas.width-20, self.canvas.height-20, self.pixels_per_move)
         self.last_n_lines = []
-        self.next_move_callback = None
         self.running = True
+        self.reset_player_state()
+
+    def reset_player_state(self):
+        self.next_move_callback = None
+        self.xpos, self.ypos = self.start_pos
+        # Set up the "drawing" surface
+        self.canvas.create_new_drawing_surface()
 
     def handle_keyboard_input(self):
         """TODO: abstract and move pygame specifics into the PyGameCanvas."""
@@ -420,7 +433,13 @@ class Game(object):
         # If so, the drawing should be reverted and a player life lost
         if intersected:
             print("Line intersected, cleaning up")
-
+            # Clean up the arena drawing state done by the player
+            self.arena.change_player_path_state(0)
+            # Reset player arena state (empty path, drawing state and arena position)
+            self.arena.player.reset_player_state()
+            # Reset player rendering state
+            self.reset_player_state()
+            # TODO: check for game over
 
     def loop(self):
         while self.running:
@@ -430,7 +449,7 @@ class Game(object):
             # Render the current arena
             self.canvas.render_arena()
 
-            # If there's an ongoing drawing, invoke the callback to continue moving the dot in the current direction
+            # If there's an ongoing drawing, invoke the callback to continue moving the Player in the current direction
             if self.next_move_callback != None:
                 self.next_move_callback()
 
@@ -454,12 +473,14 @@ class PyGameCanvas(object):
     """Canvas object that abstracts over pygame."""
     def __init__(self, width, height):
         pygame.init()
-        self.screen = pygame.display.set_mode((width, height)) # Represents the total screen estate
-        self.arena_surface = pygame.Surface((width,height)) # Represents the (evolving) arena
-        self.drawing_surface = pygame.Surface((width,height)) # Represents the ongoing drawing
-        self.clock = pygame.time.Clock()
         self.width = width
         self.height = height
+        self.screen = pygame.display.set_mode((width, height)) # Represents the total screen estate
+        self.arena_surface = pygame.Surface((width,height)) # Represents the (evolving) arena
+        self.clock = pygame.time.Clock()
+
+    def create_new_drawing_surface(self):
+        self.drawing_surface = pygame.Surface((self.width,self.height))
 
     def check_for_exit(self):
         for event in pygame.event.get():
@@ -508,6 +529,7 @@ class PyGameCanvas(object):
     def render_frame(self, game_speed):
         pygame.display.flip()
         self.clock.tick(game_speed)
+
 
 if __name__ == '__main__':
     canvas = PyGameCanvas(1200, 1200)
