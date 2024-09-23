@@ -34,47 +34,49 @@ class Player(object):
         self.is_drawing = False
         self.drawing_completed = True
 
-    def can_move_horizontally(self, xadjust):
-        """Check whether player can be moved in horizontally by xadjust, return True if so, False otherwise."""
+    def horizontal_move(self, xadjust):
+        """Check whether player can be moved in horizontally by xadjust.
+           Return 1 if player can move, 0 if not, and -1 if player move into a drawing line."""
         if (self.x + xadjust < 0) or (self.x + xadjust >= self.arena_width):
-            return False 
+            return 0
         arena_position = (self.y * self.arena_width) + (self.x + xadjust)
         if self.is_drawing:
             if self.arena[arena_position] == 0:
                 self.path.add_position(self.x + xadjust, self.y)
                 self.arena[arena_position] = 2
-                return True
+                return 1
             elif self.arena[arena_position] == 1 and len(self.path.get_positions()) > 2:
                 self.drawing_completed = True
-                return True
+                return 1
             elif self.arena[arena_position] == 2:
-                print("FAIL") # TODO: lose a life
-                return False
+                print("Player moved into drawing line")
+                return -1
         else:
             if self.arena[arena_position] == 1:
-                return True
-        return False
+                return 1
+        return 0
 
-    def can_move_vertically(self, yadjust):
-        """Check whether player can be moved in vertically by yadjust, return True if so, False otherwise."""
+    def vertical_move(self, yadjust):
+        """Check whether player can be moved in horizontally by xadjust.
+           Return 1 if player can move, 0 if not, and -1 if player move into a drawing line."""
         if (self.y + yadjust < 0) or (self.y + yadjust >= self.arena_height):
-            return False
+            return 0
         arena_position = ((self.y + yadjust) * self.arena_width) + self.x
         if self.is_drawing:
             if self.arena[arena_position] == 0:
                 self.path.add_position(self.x, self.y + yadjust)
                 self.arena[arena_position] = 2
-                return True
+                return 1
             elif self.arena[arena_position] == 1 and len(self.path.get_positions()) > 2:
                 self.drawing_completed = True
-                return True
+                return 1
             elif self.arena[arena_position] == 2:
-                print("FAIL") # TODO: lose a life
-                return False
+                print("Player moved into drawing line")
+                return -1
         else:
             if self.arena[arena_position] == 1:
-                return True
-        return False
+                return 1
+        return 0
 
     def initiate_drawing(self):
         """
@@ -358,7 +360,8 @@ class Game(object):
         if keys[pygame.K_SPACE]: self.initiate_drawing()
 
     def up(self):
-        if self.arena.player.can_move_vertically(-1):
+        state = self.arena.player.vertical_move(-1)
+        if state == 1:
             self.ypos -= self.pixels_per_move
             self.arena.player.y -= 1
             if self.arena.player.is_drawing:
@@ -367,9 +370,12 @@ class Game(object):
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
+        elif state == -1:
+            self.player_failed()
 
     def down(self):
-        if self.arena.player.can_move_vertically(1):
+        state = self.arena.player.vertical_move(1)
+        if state == 1:
             self.ypos += self.pixels_per_move
             self.arena.player.y += 1
             if self.arena.player.is_drawing:
@@ -378,9 +384,12 @@ class Game(object):
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
+        elif state == -1:
+            self.player_failed()
 
     def left(self):
-        if self.arena.player.can_move_horizontally(-1):
+        state = self.arena.player.horizontal_move(-1)
+        if state == 1:
             self.xpos -= self.pixels_per_move
             self.arena.player.x -= 1
             if self.arena.player.is_drawing:
@@ -389,9 +398,12 @@ class Game(object):
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
+        elif state == -1:
+            self.player_failed()
 
     def right(self):
-        if self.arena.player.can_move_horizontally(1):
+        state = self.arena.player.horizontal_move(1)
+        if state == 1:
             self.xpos += self.pixels_per_move
             self.arena.player.x += 1
             if self.arena.player.is_drawing:
@@ -400,6 +412,8 @@ class Game(object):
                 if self.arena.player.drawing_completed:
                     self.fill_arena()
                     self.next_move_callback = None
+        elif state == -1:
+            self.player_failed()
 
     def initiate_drawing(self):
         self.arena.player.initiate_drawing()
@@ -433,13 +447,16 @@ class Game(object):
         # If so, the drawing should be reverted and a player life lost
         if intersected:
             print("Line intersected, cleaning up")
-            # Clean up the arena drawing state done by the player
-            self.arena.change_player_path_state(0)
-            # Reset player arena state (empty path, drawing state and arena position)
-            self.arena.player.reset_player_state()
-            # Reset player rendering state
-            self.reset_player_state()
-            # TODO: check for game over
+            self.player_failed()
+
+    def player_failed(self):
+        # Clean up the arena drawing state done by the player
+        self.arena.change_player_path_state(0)
+        # Reset player arena state (empty path, drawing state and arena position)
+        self.arena.player.reset_player_state()
+        # Reset player rendering state
+        self.reset_player_state()
+        # TODO: check for game over
 
     def loop(self):
         while self.running:
