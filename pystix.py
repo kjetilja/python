@@ -422,11 +422,12 @@ class Game(object):
         self.canvas.complete_drawing()
 
     def render_line_enemies(self):
-        move_x, move_y = self.arena.line_enemies[0].move()
-        self.canvas.create_dot(10 + (self.arena.line_enemies[0].x * self.pixels_per_move), 10 + (self.arena.line_enemies[0].y * self.pixels_per_move), color="red")
-        move_x, move_y = self.arena.line_enemies[1].move()
-        self.canvas.create_dot(10 + (self.arena.line_enemies[1].x * self.pixels_per_move), 10 + (self.arena.line_enemies[1].y * self.pixels_per_move), color="red")
-        # TODO: check whether line enemies hit the Player
+        for line_enemy in self.arena.line_enemies:
+            move_x, move_y = line_enemy.move()
+            self.canvas.create_dot(10 + (line_enemy.x * self.pixels_per_move), 10 + (line_enemy.y * self.pixels_per_move), color="red")
+            if line_enemy.x == self.arena.player.x and line_enemy.y == self.arena.player.y:
+                print("Line enemy hit player")
+                self.player_failed()
 
     def render_player(self):
         self.canvas.create_dot(self.xpos, self.ypos)
