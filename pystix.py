@@ -196,7 +196,7 @@ class LineEnemy(object):
         self.arena = arena
         self.arena_width = arena_width
         self.arena_height = arena_height
-        self.move_map = { 0:(1, 0), 1:(-1, 0), 2:(0, 1), 3:(0,-1) } # Meaning -> 0:x+1, 1:x-1, 2:y+1, 3:y-1
+        self.move_map = { 0:(1, 0), 1:(-1, 0), 2:(0, 1), 3:(0,-1), 4:(0,0) } # Meaning -> 0:x+1, 1:x-1, 2:y+1, 3:y-1, 4:x,y
         self.direction = random.choice([2,3])
         self.tick = 0
 
@@ -215,7 +215,12 @@ class LineEnemy(object):
             possible_new_directions.append(2)
         if self.can_move_vertically(-1) and not current_direction == 2:
             possible_new_directions.append(3)
-        next_direction = random.choice(possible_new_directions)
+        if len(possible_new_directions) == 0:
+            # This is unexpected behavior
+            print("No possible directions for line enemy to move")
+            self.direction = 4
+        else:
+            next_direction = random.choice(possible_new_directions)
         self.direction = next_direction
         x, y = self.move_map[next_direction]
         self.x += x
@@ -265,7 +270,7 @@ class Arena(object):
                     return x, y
         return None
 
-    def change_player_path_state(self, state_value):
+    def change_player_path_state_to(self, state_value):
         # Change all the "value 2" positions on the path to state_value
         for x, y in self.player.path.get_positions():
             arena_position = y * self.arena_width + x
@@ -273,7 +278,10 @@ class Arena(object):
                 self.arena[arena_position] = state_value
 
     def fill_arena(self, fill_callback):
-        """Find the smallest empty area and fill it."""
+        """
+        Find the smallest empty area and fill it.
+        An area with an arena enemy should not be filled, even if it is the smallest area.
+        """
         areas = {}
         while True:
             free_position = self.get_free_position()
@@ -281,6 +289,12 @@ class Arena(object):
                 break
             fill_positions = self.fill_region(free_position[0], free_position[1])
             fill_positions_length = len(fill_positions)
+            for arena_enemy in self.arena_enemies:
+                arena_enemy_line_start = (arena_enemy.startx1, arena_enemy.starty1)
+                arena_enemy_line_end = (arena_enemy.startx2, arena_enemy.starty2)
+                if arena_enemy_line_start in fill_positions or arena_enemy_line_end in fill_positions:
+                    print("Boosting size of area with arena enemy")
+                    fill_positions_length += (self.arena_width * self.arena_height)
             while True:
                 if fill_positions_length in areas:
                     fill_positions_length += 1
@@ -307,7 +321,7 @@ class Arena(object):
             print("Arena filled") # TODO: set state to indicate that level completed
 
         # Change all the "value 2" positions on the path to value 1 so they can be traversed by the Player
-        self.change_player_path_state(1)
+        self.change_player_path_state_to(1)
 
         # Update state variables to indicate completion of the drawing
         self.player.is_drawing = False
@@ -367,7 +381,7 @@ class Game(object):
                 self.next_move_callback = self.up
                 self.canvas.create_line((self.xpos, self.ypos + self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
+                    self.fill_arena()
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -381,7 +395,7 @@ class Game(object):
                 self.next_move_callback = self.down
                 self.canvas.create_line((self.xpos, self.ypos - self.pixels_per_move), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
+                    self.fill_arena()
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -395,7 +409,7 @@ class Game(object):
                 self.next_move_callback = self.left
                 self.canvas.create_line((self.xpos + self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
+                    self.fill_arena()
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -409,7 +423,7 @@ class Game(object):
                 self.next_move_callback = self.right
                 self.canvas.create_line((self.xpos - self.pixels_per_move, self.ypos), (self.xpos, self.ypos))
                 if self.arena.player.drawing_completed:
-                    self.fill_arena() # TODO: do not fill the area that contains the arena enemy
+                    self.fill_arena()
                     self.next_move_callback = None
         elif state == -1:
             self.player_failed()
@@ -447,12 +461,12 @@ class Game(object):
         # Check whether the newest line intersected with an ongoing Player drawing
         # If so, the drawing should be reverted and a player life lost
         if intersected:
-            print("Line intersected, cleaning up")
+            print("Arena enemy intersected with player drawing")
             self.player_failed()
 
     def player_failed(self):
         # Clean up the arena drawing state done by the player
-        self.arena.change_player_path_state(0)
+        self.arena.change_player_path_state_to(0)
         # Reset player arena state (empty path, drawing state and arena position)
         self.arena.player.reset_player_state()
         # Reset player rendering state
