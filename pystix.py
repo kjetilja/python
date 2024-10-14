@@ -108,7 +108,7 @@ class Player(object):
 
 
 class ArenaEnemy(object):
-    """A pile of sticks that move around the arena. If the sticks hit a line that's being drawn, life is lost."""
+    """A pile of sticks that move around the arena. If the first stick hit a player line that's being drawn, life is lost."""
     def __init__(self, arena, arena_width, arena_height):
         self.arena = arena
         self.arena_width = arena_width
@@ -120,8 +120,6 @@ class ArenaEnemy(object):
         self.directions = [ (1,0),(1,1),(0,1),(-1,0),(-1,-1),(0,-1),(1,-1),(-1,1),(0,0) ]
         self.count1 = 5
         self.count2 = 5
-        self.hop1 = 5
-        self.hop2 = 2
         self.x1, self.y1 = random.choice(self.directions)
         self.x2, self.y2 = random.choice(self.directions)
 
@@ -198,7 +196,6 @@ class LineEnemy(object):
         self.arena_height = arena_height
         self.move_map = { 0:(1, 0), 1:(-1, 0), 2:(0, 1), 3:(0,-1), 4:(0,0) } # Meaning -> 0:x+1, 1:x-1, 2:y+1, 3:y-1, 4:x,y
         self.direction = random.choice([2,3])
-        self.tick = 0
 
     def move(self):
         """Return the next position to move into."""
@@ -313,9 +310,11 @@ class Arena(object):
                 arena_position = y * self.arena_width + x
                 self.arena[arena_position] = 0
             # ... but all other areas are filled
+            color_scaler = 255/(self.arena_width * self.arena_height)
             for fill_area in area_sizes[:-1]: # TODO: handle case with area_sizes == 1
                 for x, y in areas[fill_area]:
-                    fill_callback(x, y)
+                    color = int((y * self.arena_width + x) * color_scaler)
+                    fill_callback(x, y, color)
         else:
             # No fillable position on the arena remain
             print("Arena filled") # TODO: set state to indicate that level completed
@@ -538,12 +537,12 @@ class PyGameCanvas(object):
         color = pygame.Color(red_component, 0, 0)
         return pygame.draw.line(self.screen, color, start_pos, end_pos)
 
-    def create_arena_rect(self, x, y):
+    def create_arena_rect(self, x, y, color_scale):
         startx = 7 + (x * 5)
         starty = 7 + (y * 5)
-        color_fill = pygame.Color('darkgreen')
+        fill_color = pygame.Color(0, color_scale, 0)
         rect = pygame.Rect(startx+1, starty+1, 3, 3)
-        return pygame.draw.rect(self.arena_surface, color_fill, rect)
+        return pygame.draw.rect(self.arena_surface, fill_color, rect)
 
     def draw_text(self, x, y, text, size='16'):
         pygame.font.init()
