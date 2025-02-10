@@ -105,6 +105,7 @@ class Player(object):
         if self.y < self.arena_height-1:
             arena_position = ((self.y + 1) * self.arena_width) + self.x
             if self.arena[arena_position] == 0: return True
+        return False
 
 
 class ArenaEnemy(object):
@@ -188,9 +189,10 @@ class ArenaEnemy(object):
 
 class LineEnemy(object):
     """An enemy dot that traverse the lines. If the dot hits the player, life is lost."""
-    def __init__(self, arena, x, y, arena_width, arena_height):
-        self.x = x
-        self.y = y
+    def __init__(self, arena, start_x, start_y, arena_width, arena_height):
+        self.x = start_x
+        self.y = start_y
+        self.start_position = (start_x, start_y)
         self.arena = arena
         self.arena_width = arena_width
         self.arena_height = arena_height
@@ -214,8 +216,9 @@ class LineEnemy(object):
             possible_new_directions.append(3)
         if len(possible_new_directions) == 0:
             # This is unexpected behavior
-            print("No possible directions for line enemy to move")
-            self.direction = 4
+            print("No possible directions for line enemy to move, resetting position")
+            next_direction = random.choice([2,3])
+            self.x, self.y = self.start_position
         else:
             next_direction = random.choice(possible_new_directions)
         self.direction = next_direction
