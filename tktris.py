@@ -1,6 +1,8 @@
 import tkinter as tk
 import random
 
+LEVEL_SPEEDS = [1000, 800, 600, 400, 300, 200, 100, 50]
+
 class Tetronimo(object):
     """Logical representation of the tetronimo."""
     def __init__(self, arena, canvas, shape_data, colorid):
@@ -143,6 +145,10 @@ class Game(object):
         self.canvas.bind_key('<Left>', lambda _: self.current_tetronimo.move(-1))
         self.canvas.bind_key('<Right>', lambda _: self.current_tetronimo.move(1))
         self.canvas.bind_key('<Down>', lambda _: self.drop_tetronimo_fast())
+        self.canvas.bind_key('w', lambda _: self.current_tetronimo.rotate())
+        self.canvas.bind_key('a', lambda _: self.current_tetronimo.move(-1))
+        self.canvas.bind_key('d', lambda _: self.current_tetronimo.move(1))
+        self.canvas.bind_key('s', lambda _: self.drop_tetronimo_fast())
         self.canvas.bind_key('<space>', lambda _: self.start_game())
         self.game_speed = 1000
         self.start_screen()
@@ -169,7 +175,7 @@ class Game(object):
         yellow = ([0, 1, 4, 5, 0, 1, 4, 5, 0, 1, 4, 5, 0, 1, 4, 5], 3)
         red = ([0, 1, 5, 6, 1, 4, 5, 8, 0, 1, 5, 6, 1, 4, 5, 8], 4)
         magenta = ([1, 4, 5, 6, 0, 4, 5, 8, 0, 1, 2, 5, 1, 4, 5, 9], 7)
-        brown = ([2, 4, 5, 6, 0, 1, 5, 9, 0, 1, 2, 4, 1, 5, 8, 9], 8)
+        brown = ([2, 4, 5, 6, 1, 5, 10, 9, 0, 1, 2, 4, 0, 1, 5, 9], 8)
         shape_list = [blue, green, cyan, yellow, red, magenta, brown]
         shape_data, colorid = random.choice(shape_list)
         return Tetronimo(self.arena, self.canvas, shape_data, colorid)
@@ -193,8 +199,8 @@ class Game(object):
         self.arena.render()
         self.score = 0
         self.level = 1
-        self.tetronimos_per_level = 50
-        self.game_speed = 1000
+        self.tetronimos_per_level = 20
+        self.game_speed = LEVEL_SPEEDS[self.level-1]
         self.generate_level()
         self.render_game_stats()
         self.current_tetronimo = self.get_tetronimo()
@@ -226,6 +232,7 @@ class Game(object):
             if self.current_tetronimo_index == self.tetronimos_per_level:
                 self.level += 1
                 self.generate_level()
+                self.game_speed = LEVEL_SPEEDS[min(self.level-1, len(LEVEL_SPEEDS)-1)]
                 self.game_speed = max(100, 1000-(self.level*100))
             next_tetronimo = self.get_tetronimo()
             if next_tetronimo.will_collide(4, 0, 0): # check if it is possible to render the next tetronimo on arena
